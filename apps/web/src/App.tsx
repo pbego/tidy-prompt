@@ -138,7 +138,7 @@ export function App(): React.ReactNode {
 
         <div className="app__toolbar">
           <select
-            className="app__template"
+            className="select"
             aria-label="Start from a template"
             value=""
             onChange={(event) => {
@@ -154,7 +154,7 @@ export function App(): React.ReactNode {
           </select>
           {state.saved.length > 0 && (
             <select
-              className="app__saved"
+              className="select"
               aria-label="Load a saved prompt"
               value=""
               onChange={(event) => {
