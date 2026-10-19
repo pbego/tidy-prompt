@@ -14,16 +14,23 @@ import { isMaterialTag } from "./tags.js";
 import { isRenderable } from "./serialize/xml.js";
 import type { Block, Prompt, ValidationIssue } from "./types.js";
 
-/** Tags that hold the task itself. `task` is what people tend to call it by hand. */
-const TASK_TAGS = new Set(["instructions", "task"]);
+/**
+ * Tags that hold the task itself. `task` is the built-in one; `instructions` is
+ * what older prompts and people typing by hand tend to call it.
+ */
+const TASK_TAGS = new Set(["task", "instructions"]);
 
-/** Blocks that give the model a way to tell the work is done or well-shaped. */
+/**
+ * Blocks that give the model a way to tell the work is done or well-shaped. The
+ * first three are built in; the rest are names people type by hand.
+ */
 const DONE_TAGS = new Set([
+  "requirements",
+  "expected_behavior",
+  "review_focus",
   "acceptance_criteria",
   "testing",
   "output_format",
-  "expected_behavior",
-  "review_focus",
 ]);
 
 /** A task shorter than this is a topic, not an outcome. */
@@ -75,7 +82,7 @@ export function suggestImprovements(prompt: Prompt): ValidationIssue[] {
         hint(
           "no-done-check",
           task,
-          "Nothing says how to tell the work is done. Add acceptance criteria, a test, or an output format.",
+          "Nothing says how to tell the work is done. Add a requirement you could check.",
         ),
       );
     }

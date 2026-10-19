@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BUILTIN_TAGS, humanizeTag, suggestTagName, validateTagName } from "@tidy-prompt/core";
+import { builtinTagsFor, humanizeTag, suggestTagName, validateTagName } from "@tidy-prompt/core";
 import { usePromptActions, usePromptStore } from "../state/promptStore.js";
 
 export function AddTagMenu(): React.ReactNode {
@@ -57,7 +57,7 @@ export function AddTagMenu(): React.ReactNode {
         <div className="add-tag__menu" role="menu">
           <p className="add-tag__heading">Built-in</p>
           <ul className="add-tag__list">
-            {BUILTIN_TAGS.map((definition) => (
+            {builtinTagsFor(state.templateId).map((definition) => (
               <li key={definition.tag}>
                 <button
                   type="button"

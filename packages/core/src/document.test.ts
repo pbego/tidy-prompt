@@ -70,12 +70,12 @@ describe("createStarterPrompt", () => {
     const prompt = createStarterPrompt();
     expect(prompt.blocks.map((b) => b.tag)).toEqual([
       "context",
-      "instructions",
-      "constraints",
-      "output_format",
+      "references",
+      "task",
+      "requirements",
     ]);
     expect(prompt.blocks.every((b) => b.content === "")).toBe(true);
-    expect(prompt.blocks.filter((b) => b.enabled).map((b) => b.tag)).toEqual(["instructions"]);
+    expect(prompt.blocks.filter((b) => b.enabled).map((b) => b.tag)).toEqual(["task"]);
   });
 
   it("gives every block a distinct id", () => {

@@ -14,19 +14,19 @@ const tagsOf = (state: State) => state.prompt.blocks.map((b) => b.tag);
 
 describe("add-block", () => {
   it("inserts a built-in tag in its natural position rather than at the end", () => {
-    // requirements (80) belongs between instructions (70) and constraints (110).
-    const next = reducer(stateWith("instructions", "constraints"), {
+    // requirements belongs between the task and what is out of scope.
+    const next = reducer(stateWith("task", "out_of_scope"), {
       type: "add-block",
       tag: "requirements",
     });
-    expect(tagsOf(next)).toEqual(["instructions", "requirements", "constraints"]);
+    expect(tagsOf(next)).toEqual(["task", "requirements", "out_of_scope"]);
   });
 
-  it("puts pasted material above the instructions, not below them", () => {
-    let state = stateWith("instructions", "output_format");
+  it("puts pasted material above the task, not below it", () => {
+    let state = stateWith("task", "out_of_scope");
     state = reducer(state, { type: "add-block", tag: "data" });
-    state = reducer(state, { type: "add-block", tag: "existing_code" });
-    expect(tagsOf(state)).toEqual(["existing_code", "data", "instructions", "output_format"]);
+    state = reducer(state, { type: "add-block", tag: "code" });
+    expect(tagsOf(state)).toEqual(["code", "data", "task", "out_of_scope"]);
   });
 
   it("appends an unknown custom tag and remembers it", () => {
@@ -206,7 +206,7 @@ describe("folding blocks", () => {
     state.prompt.blocks.filter((b) => state.collapsed.includes(b.id)).map((b) => b.tag);
 
   it("starts with the blocks that are off and empty folded", () => {
-    expect(foldedTags(taskBrief())).toEqual(["context", "constraints", "output_format"]);
+    expect(foldedTags(taskBrief())).toEqual(["context", "references", "requirements"]);
   });
 
   it("does not fold a block that is on, or off but holding text", () => {
@@ -223,7 +223,7 @@ describe("folding blocks", () => {
 
   it("folds and unfolds a block on request", () => {
     const state = taskBrief();
-    const id = idOf(state, "instructions");
+    const id = idOf(state, "task");
     const folded = reducer(state, { type: "toggle-collapsed", id });
     expect(folded.collapsed).toContain(id);
     expect(reducer(folded, { type: "toggle-collapsed", id }).collapsed).not.toContain(id);
@@ -234,19 +234,19 @@ describe("folding blocks", () => {
       type: "replace-prompt",
       prompt: createPromptFromTemplate("review"),
     });
-    expect(foldedTags(state)).toEqual(["context"]);
+    expect(foldedTags(state)).toEqual(["context", "references"]);
   });
 
   it("opens a folded block when it is switched on", () => {
     const state = taskBrief();
-    const id = idOf(state, "constraints");
+    const id = idOf(state, "requirements");
     const next = reducer(state, { type: "update-block", id, changes: { enabled: true } });
     expect(next.collapsed).not.toContain(id);
   });
 
   it("keeps a block folded when it is switched off", () => {
     const state = taskBrief();
-    const id = idOf(state, "instructions");
+    const id = idOf(state, "task");
     const folded = reducer(state, { type: "toggle-collapsed", id });
     const next = reducer(folded, { type: "update-block", id, changes: { enabled: false } });
     expect(next.collapsed).toContain(id);
@@ -254,7 +254,7 @@ describe("folding blocks", () => {
 
   it("opens a folded block when a hint sends you to it", () => {
     const state = taskBrief();
-    const id = idOf(state, "output_format");
+    const id = idOf(state, "references");
     const next = reducer(state, { type: "focus-block", id });
     expect(next.collapsed).not.toContain(id);
     expect(next.focusBlockId).toBe(id);

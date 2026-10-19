@@ -2,7 +2,7 @@
 
 Compose structured, XML-tagged prompts for AI work.
 
-Tagging a prompt — `<instructions>`, `<context>`, `<requirements>` — helps a model tell the task
+Tagging a prompt — `<task>`, `<context>`, `<requirements>` — helps a model tell the task
 from the background and from the material you pasted in; Anthropic recommends it for exactly that.
 The model does not run the XML, though: the tags are cues, and clear writing inside them matters
 more. Doing it by hand in a text box is where it falls apart: a pasted `</data>` that ends its block
@@ -10,8 +10,7 @@ early, blocks in an order nobody chose, and no idea how large the thing has beco
 a form for the parts and a live assembly of the whole.
 
 It starts from a template — task brief, research, build a feature, debug an issue, code review, or
-blank. The built-in tags lean towards briefing an agent to build software — what to build, the
-codebase it lands in, what "done" means, what to leave alone — but any tag name works.
+blank. There are a dozen built-in tags, and any other tag name works too.
 
 Nothing leaves the browser. There is no backend and no network call.
 
@@ -86,16 +85,28 @@ interface Prompt { schemaVersion: 1; blocks: Block[] }
 | `serializeXml` | Tagged sections. The primary format. |
 | `serializeMarkdown` | The same structure as `##` headings. |
 | `serializeJson` | One field per tag; repeated tags collapse to arrays. |
-| `toMessagesRequest` | A Messages API body — standing instructions in `system`, material in the user turn. |
+| `toMessagesRequest` | A Messages API body — a hand-typed `role` in `system`, everything else in the user turn. |
 
 Blocks that are disabled, or empty with no renderable children, are omitted from every output —
 and from the token estimate, so the count always matches what would actually be sent.
 
 ### Decisions worth knowing
 
-**Material first, ask last.** New blocks slot in with background, code and data above the
-instructions, and the output format last. Anthropic's prompting guidance puts long inputs above the
-query; short prompts don't care, large ones do. You can still drag blocks into any order.
+**A small vocabulary.** Twelve built-in tags, one per job: `task`, `context`, `references`,
+`code`, `data`, `requirements`, `examples`, `out_of_scope`, and the bug-report and review tags
+(`symptoms`, `expected_behavior`, `reproduction`, `review_focus`). `context` also carries the
+codebase and stack, `code` covers both code to change and a diff to review, and `requirements` is
+where "done when" goes. There is no `role`, `constraints` or `output_format`: they added little for
+agent briefs, and each near-synonym is one more name to choose between. The tags tied to one kind
+of brief appear in the Add tag menu only while that template is in use. A prompt that already uses
+a removed name keeps it as an ordinary custom tag.
+
+**`references` is pointers, `data` is pasted text.** An agent can read a file or follow a link, so
+`references` lists where to look instead of pasting it in, where it would go stale.
+
+**Material first, ask last.** New blocks slot in with background, code and data above the task and
+the rest of the ask below it. Anthropic's prompting guidance puts long inputs above the query;
+short prompts don't care, large ones do. You can still drag blocks into any order.
 
 **Templates list tags, never content.** A template is a set of empty blocks with the main one
 switched on and the rest present but off, so it can offer more than it makes you fill in. Positions
@@ -109,9 +120,8 @@ points at the block to fix, and none fires on a prompt that is still empty. They
 grade — a prompt can pass them all and still be unclear.
 
 **No `<thinking>` tag.** Current Claude models may decline a request to write their reasoning out,
-and are steered with effort settings instead. The built-in `approach` tag covers method — what to
-read first, when to ask — as goals rather than a step list. Any tag name still works, including
-`thinking` in a saved prompt.
+and are steered with effort settings instead, so there is no built-in tag for it. Any tag name
+still works, including `thinking` in a saved prompt.
 
 **Content is never re-indented.** Leading whitespace is meaningful in the things people paste into
 prompts — Python, YAML, diffs, log excerpts — so tags are indented by depth while content between

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isBuiltinTag, getTagDefinition } from "./tags.js";
+import { BUILTIN_TAGS, isBuiltinTag, getTagDefinition } from "./tags.js";
 import {
   PROMPT_TEMPLATES,
   DEFAULT_TEMPLATE_ID,
@@ -7,6 +7,8 @@ import {
   getTemplate,
 } from "./templates.js";
 import { createStarterPrompt } from "./starter.js";
+
+const tagsOf = (id: string) => createPromptFromTemplate(id).blocks.map((b) => b.tag);
 
 describe("prompt templates", () => {
   it("offers the six starting points, with the task brief first", () => {
@@ -48,10 +50,28 @@ describe("prompt templates", () => {
     }
   });
 
-  it("always switches the main task on, except in the blank template", () => {
+  it("always switches the task on, except in the blank template", () => {
     for (const template of PROMPT_TEMPLATES.filter((t) => t.id !== "blank")) {
-      const task = createPromptFromTemplate(template.id).blocks.find((b) => b.tag === "instructions");
+      const task = createPromptFromTemplate(template.id).blocks.find((b) => b.tag === "task");
       expect(task?.enabled, template.id).toBe(true);
+    }
+  });
+
+  it("offers references, switched off, in every template but the blank one", () => {
+    for (const template of PROMPT_TEMPLATES.filter((t) => t.id !== "blank")) {
+      const block = createPromptFromTemplate(template.id).blocks.find((b) => b.tag === "references");
+      expect(block, template.id).toBeDefined();
+      expect(block?.enabled, template.id).toBe(false);
+    }
+  });
+
+  it("includes every tag that belongs to a template, switched on", () => {
+    for (const definition of BUILTIN_TAGS.filter((d) => d.templates)) {
+      for (const id of definition.templates!) {
+        const block = createPromptFromTemplate(id).blocks.find((b) => b.tag === definition.tag);
+        expect(block, `${id}: ${definition.tag}`).toBeDefined();
+        expect(block?.enabled, `${id}: ${definition.tag}`).toBe(true);
+      }
     }
   });
 
@@ -60,9 +80,7 @@ describe("prompt templates", () => {
   });
 
   it("falls back to the task brief for an unknown id", () => {
-    expect(createPromptFromTemplate("nope").blocks.map((b) => b.tag)).toEqual(
-      createPromptFromTemplate("task").blocks.map((b) => b.tag),
-    );
+    expect(tagsOf("nope")).toEqual(tagsOf("task"));
     expect(getTemplate("nope")).toBeUndefined();
   });
 
@@ -76,9 +94,19 @@ describe("prompt templates", () => {
   it("makes the starter prompt the task brief", () => {
     expect(createStarterPrompt().blocks.map((b) => [b.tag, b.enabled])).toEqual([
       ["context", false],
-      ["instructions", true],
-      ["constraints", false],
-      ["output_format", false],
+      ["references", false],
+      ["task", true],
+      ["requirements", false],
     ]);
+  });
+});
+
+describe("template vocabulary", () => {
+  it("leaves out the tags that were cut", () => {
+    const cut = ["constraints", "output_format", "instructions", "acceptance_criteria", "role"];
+    for (const template of PROMPT_TEMPLATES) {
+      const tags = template.blocks.map((b) => b.tag);
+      for (const tag of cut) expect(tags, `${template.id}: ${tag}`).not.toContain(tag);
+    }
   });
 });

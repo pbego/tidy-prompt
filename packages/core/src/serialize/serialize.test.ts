@@ -243,19 +243,29 @@ describe("serializeJsonObject", () => {
 });
 
 describe("toMessagesRequest", () => {
-  it("splits standing instructions into system and material into user", () => {
+  it("puts only a role in the system prompt; the material and the task go in the user turn", () => {
     const request = toMessagesRequest(
       promptOf(
         { tag: "role", content: "You are an engineer." },
-        { tag: "instructions", content: "Refactor it." },
-        { tag: "existing_code", content: "const a = 1;" },
+        { tag: "code", content: "const a = 1;" },
         { tag: "data", content: "rows" },
+        { tag: "task", content: "Refactor it." },
       ),
     );
-    expect(request.system).toBe("<role>You are an engineer.</role>\n\n<instructions>Refactor it.</instructions>");
+    expect(request.system).toBe("<role>You are an engineer.</role>");
     expect(request.messages).toHaveLength(1);
     expect(request.messages[0]!.role).toBe("user");
-    expect(request.messages[0]!.content).toBe("<existing_code>const a = 1;</existing_code>\n\n<data>rows</data>");
+    expect(request.messages[0]!.content).toBe(
+      "<code>const a = 1;</code>\n\n<data>rows</data>\n\n<task>Refactor it.</task>",
+    );
+  });
+
+  it("sends a brief with no role as one user message and no system prompt", () => {
+    const request = toMessagesRequest(
+      promptOf({ tag: "context", content: "Why." }, { tag: "task", content: "Do it." }),
+    );
+    expect(request.system).toBeUndefined();
+    expect(request.messages[0]!.content).toBe("<context>Why.</context>\n\n<task>Do it.</task>");
   });
 
   it("defaults to a current model and an explicit max_tokens", () => {
@@ -266,20 +276,18 @@ describe("toMessagesRequest", () => {
 
   it("honours model, max_tokens and a custom system tag set", () => {
     const request = toMessagesRequest(
-      promptOf({ tag: "role", content: "r" }, { tag: "instructions", content: "i" }),
-      { model: "claude-sonnet-5", maxTokens: 1024, systemTags: ["role"] },
+      promptOf({ tag: "role", content: "r" }, { tag: "task", content: "t" }),
+      { model: "claude-sonnet-5", maxTokens: 1024, systemTags: ["task"] },
     );
     expect(request.model).toBe("claude-sonnet-5");
     expect(request.max_tokens).toBe(1024);
-    expect(request.system).toBe("<role>r</role>");
-    expect(request.messages[0]!.content).toBe("<instructions>i</instructions>");
+    expect(request.system).toBe("<task>t</task>");
+    expect(request.messages[0]!.content).toBe("<role>r</role>");
   });
 
   it("moves everything to the user message when nothing else is left", () => {
-    const request = toMessagesRequest(
-      promptOf({ tag: "role", content: "r" }, { tag: "instructions", content: "i" }),
-    );
+    const request = toMessagesRequest(promptOf({ tag: "role", content: "r" }));
     expect(request.system).toBeUndefined();
-    expect(request.messages[0]!.content).toBe("<role>r</role>\n\n<instructions>i</instructions>");
+    expect(request.messages[0]!.content).toBe("<role>r</role>");
   });
 });

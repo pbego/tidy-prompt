@@ -14,6 +14,7 @@ export {
   getTagDefinition,
   isBuiltinTag,
   isMaterialTag,
+  builtinTagsFor,
   humanizeTag,
 } from "./tags.js";
 
