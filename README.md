@@ -5,9 +5,9 @@ Compose structured, XML-tagged prompts for AI work.
 Tagging a prompt — `<instructions>`, `<context>`, `<requirements>` — helps a model tell the task
 from the background and from the material you pasted in; Anthropic recommends it for exactly that.
 The model does not run the XML, though: the tags are cues, and clear writing inside them matters
-more. Doing it by hand in a text box is where it falls apart: unescaped `&` and `<`, a `<div>` in
-the middle that breaks the document, blocks in an order nobody chose, and no idea how large the
-thing has become. tidy-prompt is a form for the parts and a correct, live assembly of the whole.
+more. Doing it by hand in a text box is where it falls apart: a pasted `</data>` that ends its block
+early, blocks in an order nobody chose, and no idea how large the thing has become. tidy-prompt is
+a form for the parts and a live assembly of the whole.
 
 It starts from a template — task brief, research, build a feature, debug an issue, code review, or
 blank. The built-in tags lean towards briefing an agent to build software — what to build, the
@@ -117,12 +117,20 @@ read first, when to ask — as goals rather than a step list. Any tag name still
 prompts — Python, YAML, diffs, log excerpts — so tags are indented by depth while content between
 them is emitted exactly as typed. `serializeXml(prompt, { indentContent: true })` opts out.
 
-**Markup goes in CDATA, prose gets entities.** Escaping a pasted React component into
-`&lt;div&gt;` soup is correct and unreadable. `escapeContent` detects markup and wraps it in CDATA
-instead, splitting around any literal `]]>` so the section always closes.
+**Content goes in as typed, not as XML.** The output is read by a model, not parsed, so it does not
+have to be well-formed — and escaping it would change what the model sees. `if (a && b)` becoming
+`if (a &amp;&amp; b)` is not the code that was pasted, and a model may copy the entities into a file.
+So `&`, `<` and `>` are left alone.
 
-**A bare `>` is left alone.** It only has to be escaped inside `]]>`, and `->`, `=>` and `if (a > b)`
-appear constantly in prompts about code.
+**Only a block's own closing tag is guarded.** What can go wrong is structural: text inside
+`<data>` that contains `</data>` reads as the block ending. When content closes the block it sits in,
+or any block around it, `escapeContent` wraps it in CDATA to mark it literal, splitting around any
+`]]>` so the section still closes. The match is by whole tag name, ignoring case and spacing, so
+`</database>` is left alone.
+
+**Strict XML is opt-in.** If something downstream really does parse the output,
+`serializeXml(prompt, { strategy: "escape" })` entity-escapes `&` and `<`, and `"cdata"` wraps every
+block. `"raw"` turns the guard off.
 
 **Token counts are estimates.** `estimateTokens` is a heuristic — CJK characters counted
 individually, chars/4 for the rest, floored by a word-based estimate — not a tokenizer. The UI

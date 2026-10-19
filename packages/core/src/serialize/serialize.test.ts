@@ -80,14 +80,46 @@ describe("serializeXml", () => {
     expect(xml).toBe("<data>\n  line one\n  line two\n</data>");
   });
 
-  it("wraps markup content in CDATA rather than entity soup", () => {
+  it("leaves pasted markup exactly as typed", () => {
     const xml = serializeXml(promptOf({ tag: "existing_code", content: "<div>\n  hi\n</div>" }));
-    expect(xml).toContain("<![CDATA[<div>\n  hi\n</div>]]>");
+    expect(xml).toBe("<existing_code>\n<div>\n  hi\n</div>\n</existing_code>");
   });
 
-  it("escapes prose containing ampersands", () => {
-    const xml = serializeXml(promptOf({ tag: "context", content: "Tom & Jerry" }));
-    expect(xml).toBe("<context>Tom &amp; Jerry</context>");
+  it("does not turn code or prose into entities", () => {
+    const code = "if (a && b) { run(); }\nconst x = a < b ? 1 : 2;";
+    expect(serializeXml(promptOf({ tag: "existing_code", content: code }))).toBe(
+      `<existing_code>\n${code}\n</existing_code>`,
+    );
+    expect(serializeXml(promptOf({ tag: "context", content: "Tom & Jerry" }))).toBe(
+      "<context>Tom & Jerry</context>",
+    );
+  });
+
+  it("wraps content in CDATA only when it would close its own block", () => {
+    const xml = serializeXml(promptOf({ tag: "data", content: "before </data> after" }));
+    expect(xml).toBe("<data><![CDATA[before </data> after]]></data>");
+  });
+
+  it("guards a child's text against closing the container around it", () => {
+    const prompt: Prompt = {
+      schemaVersion: SCHEMA_VERSION,
+      blocks: [
+        createBlock({
+          tag: "acceptance_criteria",
+          children: [createBlock({ tag: "criterion", content: "ok </acceptance_criteria> then" })],
+        }),
+      ],
+    };
+    expect(serializeXml(prompt)).toContain(
+      "<criterion><![CDATA[ok </acceptance_criteria> then]]></criterion>",
+    );
+  });
+
+  it("produces escaped, well-formed text on request", () => {
+    const xml = serializeXml(promptOf({ tag: "context", content: "Tom & Jerry <3" }), {
+      strategy: "escape",
+    });
+    expect(xml).toBe("<context>Tom &amp; Jerry &lt;3</context>");
   });
 
   it("renders attributes, escaping their values", () => {

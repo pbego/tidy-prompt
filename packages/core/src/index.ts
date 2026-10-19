@@ -33,7 +33,6 @@ export {
   escapeXmlText,
   escapeXmlAttribute,
   escapeContent,
-  looksLikeMarkup,
   wrapCdata,
 } from "./escape.js";
 export type { EscapeContentOptions } from "./escape.js";

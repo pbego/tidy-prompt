@@ -40,12 +40,17 @@ export function serializeXml(prompt: Prompt, options: SerializeXmlOptions = {}):
   return parts.join(blankLine ? "\n\n" : "\n");
 }
 
-/** Serializes a single block. Exported so callers can render a subset. */
+/**
+ * Serializes a single block. Exported so callers can render a subset.
+ * `ancestors` names the tags this block sits inside; it is filled in as the
+ * recursion descends, so a child's text is also guarded against closing its parent.
+ */
 export function serializeBlock(
   block: Block,
   depth: number,
   indent: number,
   options: SerializeXmlOptions = {},
+  ancestors: readonly string[] = [],
 ): string {
   const pad = " ".repeat(depth * indent);
   const open = `${pad}<${block.tag}${formatAttributes(block.attributes)}>`;
@@ -56,7 +61,10 @@ export function serializeBlock(
   const lines: string[] = [];
 
   if (content.length > 0) {
-    const escaped = escapeContent(content, options);
+    const escaped = escapeContent(content, {
+      ...options,
+      guardTags: [...(options.guardTags ?? []), block.tag, ...ancestors],
+    });
     // A short, single-line value reads better inline: <role>You are…</role>
     if (!escaped.includes("\n") && children.length === 0) {
       return `${open}${escaped}</${block.tag}>`;
@@ -65,7 +73,7 @@ export function serializeBlock(
   }
 
   for (const child of children) {
-    lines.push(serializeBlock(child, depth + 1, indent, options));
+    lines.push(serializeBlock(child, depth + 1, indent, options, [...ancestors, block.tag]));
   }
 
   return [open, ...lines, close].join("\n");
