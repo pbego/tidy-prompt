@@ -1,7 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { BUILTIN_TAGS, DEFAULT_SYSTEM_TAGS, getTagDefinition, isBuiltinTag } from "./tags.js";
+import {
+  BUILTIN_TAGS,
+  DEFAULT_SYSTEM_TAGS,
+  getTagDefinition,
+  isBuiltinTag,
+  isMaterialTag,
+} from "./tags.js";
 
 const orderOf = (tag: string) => getTagDefinition(tag)!.defaultOrder;
+
+const MATERIAL = [
+  "context",
+  "sources",
+  "symptoms",
+  "expected_behavior",
+  "reproduction",
+  "codebase",
+  "tech_stack",
+  "existing_code",
+  "changes",
+  "data",
+];
 
 describe("built-in tag order", () => {
   it("lists the registry in the same order as defaultOrder", () => {
@@ -14,17 +33,30 @@ describe("built-in tag order", () => {
   });
 
   it("puts material the model reads before the instructions that act on it", () => {
-    for (const material of ["context", "codebase", "tech_stack", "existing_code", "data"]) {
+    for (const material of MATERIAL) {
       expect(orderOf(material), material).toBeLessThan(orderOf("instructions"));
     }
   });
 
   it("keeps the ask after the material, with the output shape last", () => {
-    for (const ask of ["requirements", "acceptance_criteria", "constraints", "approach"]) {
+    for (const ask of ["review_focus", "requirements", "acceptance_criteria", "constraints", "approach"]) {
       expect(orderOf(ask), ask).toBeGreaterThan(orderOf("instructions"));
     }
     const last = BUILTIN_TAGS[BUILTIN_TAGS.length - 1]!;
     expect(last.tag).toBe("output_format");
+  });
+});
+
+describe("isMaterialTag", () => {
+  it("is true for exactly the tags that sit between the role and the instructions", () => {
+    expect(BUILTIN_TAGS.map((t) => t.tag).filter(isMaterialTag)).toEqual(MATERIAL);
+  });
+
+  it("is false for the role, the ask and tags it does not know", () => {
+    expect(isMaterialTag("role")).toBe(false);
+    expect(isMaterialTag("instructions")).toBe(false);
+    expect(isMaterialTag("constraints")).toBe(false);
+    expect(isMaterialTag("rollout_plan")).toBe(false);
   });
 });
 

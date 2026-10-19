@@ -1,4 +1,7 @@
-/** Validation issues, clickable to jump to the block they belong to. */
+/**
+ * Validation issues and quality hints, clickable to jump to the block they
+ * belong to. Anything that is not an error is shown as a suggestion.
+ */
 
 import type { ValidationIssue } from "@tidy-prompt/core";
 import { usePromptActions } from "../state/promptStore.js";

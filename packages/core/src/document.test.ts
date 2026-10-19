@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import { parsePromptDocument, toPromptDocument } from "./document.js";
 import { createBlock, SCHEMA_VERSION, type Prompt } from "./types.js";
 import { createStarterPrompt } from "./starter.js";
-import { BUILTIN_TAGS } from "./tags.js";
 
 describe("prompt documents", () => {
   const prompt: Prompt = {
@@ -67,14 +66,16 @@ describe("prompt documents", () => {
 });
 
 describe("createStarterPrompt", () => {
-  it("opens with the default tags, empty and in registry order", () => {
+  it("opens as the task brief: every block empty, only the task switched on", () => {
     const prompt = createStarterPrompt();
-    const expected = BUILTIN_TAGS.filter((t) => t.defaultEnabled)
-      .slice()
-      .sort((a, b) => a.defaultOrder - b.defaultOrder)
-      .map((t) => t.tag);
-    expect(prompt.blocks.map((b) => b.tag)).toEqual(expected);
-    expect(prompt.blocks.every((b) => b.content === "" && b.enabled)).toBe(true);
+    expect(prompt.blocks.map((b) => b.tag)).toEqual([
+      "context",
+      "instructions",
+      "constraints",
+      "output_format",
+    ]);
+    expect(prompt.blocks.every((b) => b.content === "")).toBe(true);
+    expect(prompt.blocks.filter((b) => b.enabled).map((b) => b.tag)).toEqual(["instructions"]);
   });
 
   it("gives every block a distinct id", () => {

@@ -13,10 +13,21 @@ export {
   DEFAULT_SYSTEM_TAGS,
   getTagDefinition,
   isBuiltinTag,
+  isMaterialTag,
   humanizeTag,
 } from "./tags.js";
 
 export { createStarterPrompt } from "./starter.js";
+
+export type { PromptTemplate, TemplateBlock } from "./templates.js";
+export {
+  PROMPT_TEMPLATES,
+  DEFAULT_TEMPLATE_ID,
+  getTemplate,
+  createPromptFromTemplate,
+} from "./templates.js";
+
+export { suggestImprovements } from "./suggest.js";
 
 export {
   escapeXmlText,

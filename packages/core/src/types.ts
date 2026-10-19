@@ -24,7 +24,12 @@ export interface Prompt {
   blocks: Block[];
 }
 
-export type IssueSeverity = "error" | "warning";
+/**
+ * `error` and `warning` come from validation: the output is broken or probably
+ * not what was meant. `hint` comes from `suggestImprovements`: the output is
+ * fine, but the prompt could ask for more clearly.
+ */
+export type IssueSeverity = "error" | "warning" | "hint";
 
 export interface ValidationIssue {
   severity: IssueSeverity;
@@ -38,7 +43,11 @@ export interface ValidationIssue {
     | "invalid-attribute-name"
     | "unbalanced-markup"
     | "redundant-tag"
-    | "large-prompt";
+    | "large-prompt"
+    | "thin-task"
+    | "vague-wording"
+    | "no-done-check"
+    | "material-without-task";
   message: string;
   /** Block the issue belongs to, when it is not a whole-prompt issue. */
   blockId?: string;

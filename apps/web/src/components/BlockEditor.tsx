@@ -36,8 +36,11 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
   const definition = getTagDefinition(block.tag);
   const tagIssue = validateTagName(block.tag);
   const tokens = estimateBlockTokens(block);
+  const isChild = parentId !== undefined;
+  // Only top-level blocks fold; a child is part of the container it sits in.
+  const collapsed = !isChild && state.collapsed.includes(block.id);
 
-  useAutoResize(textareaRef, block.content);
+  useAutoResize(textareaRef, block.content, collapsed);
 
   // A click on a validation issue focuses the block it belongs to.
   useEffect(() => {
@@ -48,8 +51,6 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
     actions.focusBlock(null);
   }, [state.focusBlockId, block.id, actions]);
 
-  const isChild = parentId !== undefined;
-
   return (
     <li
       ref={setNodeRef}
@@ -58,6 +59,7 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
         isChild ? "block--child" : "",
         isDragging ? "block--dragging" : "",
         block.enabled ? "" : "block--disabled",
+        collapsed ? "block--collapsed" : "",
         tagIssue ? "block--invalid" : "",
       ]
         .filter(Boolean)
@@ -90,6 +92,10 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
           ≈{tokens.toLocaleString("en-US")}
         </span>
 
+        {collapsed && firstLine(block.content) && (
+          <span className="block__excerpt">{firstLine(block.content)}</span>
+        )}
+
         <div className="block__actions">
           <label className="block__toggle" title="Include this block in the output">
             <input
@@ -99,6 +105,18 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
             />
             <span>{block.enabled ? "On" : "Off"}</span>
           </label>
+          {!isChild && (
+            <button
+              type="button"
+              className="button button--ghost block__fold"
+              aria-expanded={!collapsed}
+              aria-label={`${collapsed ? "Expand" : "Collapse"} ${humanizeTag(block.tag)}`}
+              title={collapsed ? "Expand" : "Collapse"}
+              onClick={() => actions.toggleCollapsed(block.id)}
+            >
+              {collapsed ? "+" : "−"}
+            </button>
+          )}
           <button
             type="button"
             className="button button--ghost"
@@ -120,27 +138,38 @@ export function BlockEditor({ block, parentId }: Props): React.ReactNode {
       </div>
 
       {tagIssue && <p className="block__error">{tagIssue.message}</p>}
-      {definition && !isChild && <p className="block__hint">{definition.description}</p>}
 
-      {showAttributes && (
-        <AttributeEditor
-          attributes={block.attributes ?? {}}
-          onChange={(next) => actions.updateBlock(block.id, { attributes: next })}
-        />
+      {!collapsed && (
+        <>
+          {definition && !isChild && <p className="block__hint">{definition.description}</p>}
+
+          {showAttributes && (
+            <AttributeEditor
+              attributes={block.attributes ?? {}}
+              onChange={(next) => actions.updateBlock(block.id, { attributes: next })}
+            />
+          )}
+
+          <textarea
+            ref={textareaRef}
+            className="block__content"
+            value={block.content}
+            placeholder={definition?.placeholder ?? `Content for <${block.tag}>`}
+            spellCheck={false}
+            onChange={(event) => actions.updateBlock(block.id, { content: event.target.value })}
+          />
+
+          {definition?.container && <ChildBlockList parent={block} definition={definition} />}
+        </>
       )}
-
-      <textarea
-        ref={textareaRef}
-        className="block__content"
-        value={block.content}
-        placeholder={definition?.placeholder ?? `Content for <${block.tag}>`}
-        spellCheck={false}
-        onChange={(event) => actions.updateBlock(block.id, { content: event.target.value })}
-      />
-
-      {definition?.container && <ChildBlockList parent={block} definition={definition} />}
     </li>
   );
+}
+
+/** The first non-empty line, trimmed, for the one-line preview of a folded block. */
+function firstLine(text: string): string {
+  const line = text.split("\n").find((candidate) => candidate.trim().length > 0);
+  return line ? line.trim() : "";
 }
 
 interface AttributeEditorProps {
@@ -215,7 +244,13 @@ const MAX_HEIGHT = 560;
  * and web fonts have not necessarily been applied, and measuring an unstyled
  * textarea yields a wildly wrong height that then sets the layout.
  */
-function useAutoResize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string): void {
+function useAutoResize(
+  ref: React.RefObject<HTMLTextAreaElement | null>,
+  value: string,
+  collapsed: boolean,
+): void {
+  // `collapsed` is a dependency because unfolding mounts a fresh textarea that has
+  // to be measured, even though its value did not change.
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
@@ -230,5 +265,5 @@ function useAutoResize(ref: React.RefObject<HTMLTextAreaElement | null>, value: 
     resize();
     const frame = requestAnimationFrame(resize);
     return () => cancelAnimationFrame(frame);
-  }, [ref, value]);
+  }, [ref, value, collapsed]);
 }

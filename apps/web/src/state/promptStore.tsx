@@ -21,7 +21,14 @@ import {
   type Prompt,
 } from "@tidy-prompt/core";
 import { readJson, writeJson, StorageKeys, isStorageAvailable } from "../lib/storage.js";
-import { initialState, reducer, type Action, type SavedPrompt, type State } from "./reducer.js";
+import {
+  defaultCollapsed,
+  initialState,
+  reducer,
+  type Action,
+  type SavedPrompt,
+  type State,
+} from "./reducer.js";
 
 export type { Action, SavedPrompt, State };
 export { reducer };
@@ -38,7 +45,20 @@ function loadPersistedState(): State {
   }
   base.customTags = readJson<string[]>(StorageKeys.customTags, []);
   base.saved = readJson<SavedPrompt[]>(StorageKeys.saved, []);
+  base.collapsed = loadCollapsed(base.prompt);
   return base;
+}
+
+/**
+ * Remembers which blocks were folded, keeping only ids that still exist. With
+ * nothing stored — a first visit, or a document saved before folding existed —
+ * the default rule applies.
+ */
+function loadCollapsed(prompt: Prompt): string[] {
+  const stored = readJson<unknown>(StorageKeys.collapsed, null);
+  if (!Array.isArray(stored)) return defaultCollapsed(prompt);
+  const known = new Set(prompt.blocks.map((block) => block.id));
+  return stored.filter((id): id is string => typeof id === "string" && known.has(id));
 }
 
 interface StoreValue {
@@ -71,6 +91,10 @@ export function PromptStoreProvider({ children }: { children: ReactNode }): Reac
     writeJson(StorageKeys.saved, state.saved);
   }, [state.saved]);
 
+  useEffect(() => {
+    writeJson(StorageKeys.collapsed, state.collapsed);
+  }, [state.collapsed]);
+
   const value = useMemo(() => ({ state, dispatch, storageAvailable }), [state, storageAvailable]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
@@ -97,6 +121,7 @@ export function usePromptActions() {
       moveChild: (parentId: string, activeId: string, overId: string) =>
         dispatch({ type: "move-child", parentId, activeId, overId }),
       focusBlock: (id: string | null) => dispatch({ type: "focus-block", id }),
+      toggleCollapsed: (id: string) => dispatch({ type: "toggle-collapsed", id }),
       saveAs: (name: string) =>
         dispatch({ type: "save-as", name, savedAt: new Date().toISOString() }),
       deleteSaved: (name: string) => dispatch({ type: "delete-saved", name }),

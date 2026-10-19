@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createBlock, SCHEMA_VERSION, type Prompt } from "@tidy-prompt/core";
+import { createBlock, createPromptFromTemplate, SCHEMA_VERSION, type Prompt } from "@tidy-prompt/core";
 import { initialState, reducer, type State } from "./reducer.js";
 
 function stateWith(...tags: string[]): State {
@@ -196,5 +196,83 @@ describe("saved prompts", () => {
     expect(replaced.saved).toHaveLength(1);
     expect(replaced.customTags).toEqual(["rollout_plan"]);
     expect(replaced.prompt.blocks).toEqual([]);
+  });
+});
+
+describe("folding blocks", () => {
+  const taskBrief = () => initialState(createPromptFromTemplate("task"));
+  const idOf = (state: State, tag: string) => state.prompt.blocks.find((b) => b.tag === tag)!.id;
+  const foldedTags = (state: State) =>
+    state.prompt.blocks.filter((b) => state.collapsed.includes(b.id)).map((b) => b.tag);
+
+  it("starts with the blocks that are off and empty folded", () => {
+    expect(foldedTags(taskBrief())).toEqual(["context", "constraints", "output_format"]);
+  });
+
+  it("does not fold a block that is on, or off but holding text", () => {
+    const prompt: Prompt = {
+      schemaVersion: SCHEMA_VERSION,
+      blocks: [
+        createBlock({ tag: "instructions", content: "Build it." }),
+        createBlock({ tag: "context", enabled: false, content: "Kept for later." }),
+        createBlock({ tag: "constraints", enabled: false }),
+      ],
+    };
+    expect(foldedTags(initialState(prompt))).toEqual(["constraints"]);
+  });
+
+  it("folds and unfolds a block on request", () => {
+    const state = taskBrief();
+    const id = idOf(state, "instructions");
+    const folded = reducer(state, { type: "toggle-collapsed", id });
+    expect(folded.collapsed).toContain(id);
+    expect(reducer(folded, { type: "toggle-collapsed", id }).collapsed).not.toContain(id);
+  });
+
+  it("works out what to fold again when the whole prompt is replaced", () => {
+    const state = reducer(taskBrief(), {
+      type: "replace-prompt",
+      prompt: createPromptFromTemplate("review"),
+    });
+    expect(foldedTags(state)).toEqual(["context"]);
+  });
+
+  it("opens a folded block when it is switched on", () => {
+    const state = taskBrief();
+    const id = idOf(state, "constraints");
+    const next = reducer(state, { type: "update-block", id, changes: { enabled: true } });
+    expect(next.collapsed).not.toContain(id);
+  });
+
+  it("keeps a block folded when it is switched off", () => {
+    const state = taskBrief();
+    const id = idOf(state, "instructions");
+    const folded = reducer(state, { type: "toggle-collapsed", id });
+    const next = reducer(folded, { type: "update-block", id, changes: { enabled: false } });
+    expect(next.collapsed).toContain(id);
+  });
+
+  it("opens a folded block when a hint sends you to it", () => {
+    const state = taskBrief();
+    const id = idOf(state, "output_format");
+    const next = reducer(state, { type: "focus-block", id });
+    expect(next.collapsed).not.toContain(id);
+    expect(next.focusBlockId).toBe(id);
+  });
+
+  it("leaves folding alone when focus is cleared", () => {
+    const state = taskBrief();
+    expect(reducer(state, { type: "focus-block", id: null }).collapsed).toEqual(state.collapsed);
+  });
+
+  it("forgets a block that is deleted", () => {
+    const state = taskBrief();
+    const id = idOf(state, "context");
+    expect(reducer(state, { type: "remove-block", id }).collapsed).not.toContain(id);
+  });
+
+  it("does not fold a block that has just been added", () => {
+    const next = reducer(taskBrief(), { type: "add-block", tag: "data" });
+    expect(next.collapsed).not.toContain(next.focusBlockId);
   });
 });

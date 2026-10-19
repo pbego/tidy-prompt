@@ -21,10 +21,13 @@ export interface State {
   saved: SavedPrompt[];
   /** Block to scroll to and focus, set when the user clicks a validation issue. */
   focusBlockId: string | null;
+  /** Ids of top-level blocks folded down to their header. View state, not prompt content. */
+  collapsed: string[];
 }
 
 export type Action =
   | { type: "replace-prompt"; prompt: Prompt }
+  | { type: "toggle-collapsed"; id: string }
   | { type: "add-block"; tag: string }
   | { type: "add-child"; parentId: string; tag: string }
   | { type: "update-block"; id: string; changes: Partial<Omit<Block, "id" | "children">> }
@@ -39,7 +42,20 @@ export type Action =
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "replace-prompt":
-      return { ...state, prompt: action.prompt, focusBlockId: null };
+      return {
+        ...state,
+        prompt: action.prompt,
+        collapsed: defaultCollapsed(action.prompt),
+        focusBlockId: null,
+      };
+
+    case "toggle-collapsed":
+      return {
+        ...state,
+        collapsed: state.collapsed.includes(action.id)
+          ? state.collapsed.filter((id) => id !== action.id)
+          : [...state.collapsed, action.id],
+      };
 
     case "add-block": {
       const block = createBlock({ tag: action.tag });
@@ -80,12 +96,16 @@ export function reducer(state: State, action: Action): State {
           typeof action.changes.tag === "string"
             ? rememberTag(state.customTags, action.changes.tag)
             : state.customTags,
+        // Switching a folded block on is a request to work on it, so open it.
+        collapsed:
+          action.changes.enabled === true ? without(state.collapsed, action.id) : state.collapsed,
       };
 
     case "remove-block":
       return {
         ...state,
         prompt: { ...state.prompt, blocks: removeBlock(state.prompt.blocks, action.id) },
+        collapsed: without(state.collapsed, action.id),
         focusBlockId: state.focusBlockId === action.id ? null : state.focusBlockId,
       };
 
@@ -111,7 +131,12 @@ export function reducer(state: State, action: Action): State {
       };
 
     case "focus-block":
-      return { ...state, focusBlockId: action.id };
+      // Jumping to a block (from a hint, say) has to open it, or there is nothing to focus.
+      return {
+        ...state,
+        focusBlockId: action.id,
+        collapsed: action.id === null ? state.collapsed : without(state.collapsed, action.id),
+      };
 
     case "save-as": {
       const entry: SavedPrompt = {
@@ -181,5 +206,30 @@ function reorder(blocks: Block[], activeId: string, overId: string): Block[] {
 
 
 export function initialState(prompt: Prompt): State {
-  return { prompt, customTags: [], saved: [], focusBlockId: null };
+  return {
+    prompt,
+    customTags: [],
+    saved: [],
+    focusBlockId: null,
+    collapsed: defaultCollapsed(prompt),
+  };
+}
+
+/**
+ * Which blocks start folded: the ones that are off and have nothing in them. A
+ * template offers more blocks than it asks you to fill in, and the unused ones
+ * should not take up the page.
+ */
+export function defaultCollapsed(prompt: Prompt): string[] {
+  return prompt.blocks
+    .filter((block) => !block.enabled && !hasText(block))
+    .map((block) => block.id);
+}
+
+function hasText(block: Block): boolean {
+  return block.content.trim().length > 0 || (block.children ?? []).some(hasText);
+}
+
+function without(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((existing) => existing !== id) : ids;
 }

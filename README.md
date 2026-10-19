@@ -1,14 +1,16 @@
 # tidy-prompt
 
-Compose structured, XML-tagged prompts for AI coding agents.
+Compose structured, XML-tagged prompts for AI work.
 
-Tagging a prompt — `<instructions>`, `<context>`, `<requirements>` — is one of the most reliable
-ways to get consistent results out of a model. Doing it by hand in a text box is where it falls
-apart: unescaped `&` and `<`, a `<div>` in the middle that breaks the document, blocks in an order
-nobody chose, and no idea how large the thing has become. tidy-prompt is a form for the parts and a
-correct, live assembly of the whole.
+Tagging a prompt — `<instructions>`, `<context>`, `<requirements>` — helps a model tell the task
+from the background and from the material you pasted in; Anthropic recommends it for exactly that.
+The model does not run the XML, though: the tags are cues, and clear writing inside them matters
+more. Doing it by hand in a text box is where it falls apart: unescaped `&` and `<`, a `<div>` in
+the middle that breaks the document, blocks in an order nobody chose, and no idea how large the
+thing has become. tidy-prompt is a form for the parts and a correct, live assembly of the whole.
 
-The default tag vocabulary is aimed at briefing an agent to build software — what to build, the
+It starts from a template — task brief, research, build a feature, debug an issue, code review, or
+blank. The built-in tags lean towards briefing an agent to build software — what to build, the
 codebase it lands in, what "done" means, what to leave alone — but any tag name works.
 
 Nothing leaves the browser. There is no backend and no network call.
@@ -23,7 +25,7 @@ pnpm install
 pnpm dev
 ```
 
-The app runs at `http://localhost:5173`.
+The app runs at `http://localhost:5180`.
 
 | Command | What it does |
 | --- | --- |
@@ -52,9 +54,11 @@ source in dev (hot reload) and through `dist` when built.
 ```ts
 import {
   createBlock, createStarterPrompt,        // building documents
+  PROMPT_TEMPLATES, createPromptFromTemplate,
   serializeXml, serializeMarkdown,          // outputs
   serializeJson, toMessagesRequest,
   validatePrompt, validateTagName,          // checks
+  suggestImprovements,                      // quality hints
   estimatePromptTokens,                     // rough sizing
   toPromptDocument, parsePromptDocument,    // save files
 } from "@tidy-prompt/core";
@@ -93,6 +97,17 @@ and from the token estimate, so the count always matches what would actually be 
 instructions, and the output format last. Anthropic's prompting guidance puts long inputs above the
 query; short prompts don't care, large ones do. You can still drag blocks into any order.
 
+**Templates list tags, never content.** A template is a set of empty blocks with the main one
+switched on and the rest present but off, so it can offer more than it makes you fill in. Positions
+come from the tag registry, so no template repeats the material-first order. The app folds the
+blocks that are off and empty; folding is view state, kept beside the document, not in it.
+
+**Hints are heuristics, and they stay quiet.** `suggestImprovements` is a handful of mechanical
+checks, with no model call: a task that is one phrase long, wording like "etc." that leaves the
+model to guess, nothing saying how to tell the work is done, material pasted in with no task. Each
+points at the block to fix, and none fires on a prompt that is still empty. They are a nudge, not a
+grade — a prompt can pass them all and still be unclear.
+
 **No `<thinking>` tag.** Current Claude models may decline a request to write their reasoning out,
 and are steered with effort settings instead. The built-in `approach` tag covers method — what to
 read first, when to ask — as goals rather than a step list. Any tag name still works, including
@@ -121,12 +136,12 @@ the tag the composer will add, and overall size.
 ## Storage
 
 `localStorage`, namespaced under `tidy-prompt:` — the working document (debounced), named saves,
-and remembered custom tags. Every access degrades to "no saved state" rather than throwing, since
+remembered custom tags, and which blocks are folded. Every access degrades to "no saved state" rather than throwing, since
 storage can be full or disabled. Import/export uses a versioned JSON document that also accepts a
 bare prompt, regenerates missing ids, and reports malformed input instead of failing.
 
 ## Status
 
-v1 is the standalone web app. Deliberately not built yet: templates and presets, share-by-URL,
+v1 is the standalone web app. Deliberately not built yet: your own saved templates, share-by-URL,
 accounts, AI-assisted critique of a prompt, and the browser and editor plugins themselves. The core
 package is shaped so each of those is additive rather than a rewrite.

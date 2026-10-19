@@ -146,6 +146,42 @@ button:focus-visible {
   flex-wrap: wrap;
 }
 
+/* ---------- "how tags help" note ---------- */
+.app__brand {
+  position: relative;
+}
+.info {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.info__summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--accent);
+}
+.info__body {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  top: 100%;
+  width: min(380px, 86vw);
+  margin-top: 6px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  font-size: 13px;
+  color: var(--text);
+}
+.info__body p {
+  margin: 2px 0 10px;
+  color: var(--text-muted);
+}
+.info__body p:last-child {
+  margin-bottom: 0;
+}
+
 .app__warning,
 .app__notice {
   margin: 12px 0 0;
@@ -307,6 +343,9 @@ button:focus-visible {
 .issues__item--error {
   border-left-color: var(--error);
 }
+.issues__item--hint {
+  border-left-color: var(--accent);
+}
 .issues__item:hover:not(:disabled) {
   background: var(--surface-sunken);
 }
@@ -408,6 +447,25 @@ button:focus-visible {
 }
 .block__delete:hover {
   color: var(--error);
+}
+.block__fold {
+  min-width: 28px;
+  font-size: 16px;
+  line-height: 1;
+}
+/* A folded block is just its header, so it needs less room around it. */
+.block--collapsed {
+  padding-bottom: 10px;
+}
+.block__excerpt {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .block__hint,
 .block__error {

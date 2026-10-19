@@ -29,7 +29,7 @@ export const FORMATS: readonly Format[] = [
   {
     id: "xml",
     label: "XML",
-    hint: "Tagged sections. The format most models follow most reliably.",
+    hint: "Tagged sections. Anthropic recommends tags for keeping instructions apart from pasted material. Test important prompts on your target model.",
     extension: "xml",
     mimeType: "application/xml",
     render: (prompt) => serializeXml(prompt),
