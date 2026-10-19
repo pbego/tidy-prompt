@@ -126,6 +126,17 @@ kbd {
   border-color: var(--accent);
 }
 
+/* A small label sitting in front of a control, e.g. "Template" before its dropdown. */
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.field__label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 input,
 select,
 textarea {

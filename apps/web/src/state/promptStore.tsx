@@ -14,7 +14,9 @@ import {
   type ReactNode,
 } from "react";
 import {
+  DEFAULT_TEMPLATE_ID,
   createStarterPrompt,
+  getTemplate,
   parsePromptDocument,
   toPromptDocument,
   type Block,
@@ -35,12 +37,13 @@ export { reducer };
 
 /** Reads persisted state, falling back to a fresh document on anything unusable. */
 function loadPersistedState(): State {
-  const base = initialState(createStarterPrompt());
+  const base = initialState(createStarterPrompt(), DEFAULT_TEMPLATE_ID);
   const rawWorking = readJson<unknown>(StorageKeys.working, null);
   if (rawWorking) {
     const parsed = parsePromptDocument(rawWorking);
     if (parsed.ok && parsed.document.prompt.blocks.length > 0) {
       base.prompt = parsed.document.prompt;
+      base.templateId = loadTemplateId();
     }
   }
   base.customTags = readJson<string[]>(StorageKeys.customTags, []);
@@ -59,6 +62,16 @@ function loadCollapsed(prompt: Prompt): string[] {
   if (!Array.isArray(stored)) return defaultCollapsed(prompt);
   const known = new Set(prompt.blocks.map((block) => block.id));
   return stored.filter((id): id is string => typeof id === "string" && known.has(id));
+}
+
+/**
+ * The template a restored document came from. A stored id that no longer names a
+ * template, or nothing at all — a document saved before the picker showed its
+ * choice — leaves the picker on "Custom" rather than guessing.
+ */
+function loadTemplateId(): string | null {
+  const stored = readJson<unknown>(StorageKeys.template, null);
+  return typeof stored === "string" && getTemplate(stored) ? stored : null;
 }
 
 interface StoreValue {
@@ -95,6 +108,10 @@ export function PromptStoreProvider({ children }: { children: ReactNode }): Reac
     writeJson(StorageKeys.collapsed, state.collapsed);
   }, [state.collapsed]);
 
+  useEffect(() => {
+    writeJson(StorageKeys.template, state.templateId);
+  }, [state.templateId]);
+
   const value = useMemo(() => ({ state, dispatch, storageAvailable }), [state, storageAvailable]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
@@ -110,7 +127,8 @@ export function usePromptActions() {
   const { dispatch } = usePromptStore();
   return useMemo(
     () => ({
-      replacePrompt: (prompt: Prompt) => dispatch({ type: "replace-prompt", prompt }),
+      replacePrompt: (prompt: Prompt, templateId: string | null = null) =>
+        dispatch({ type: "replace-prompt", prompt, templateId }),
       addBlock: (tag: string) => dispatch({ type: "add-block", tag }),
       addChild: (parentId: string, tag: string) => dispatch({ type: "add-child", parentId, tag }),
       updateBlock: (id: string, changes: Partial<Omit<Block, "id" | "children">>) =>

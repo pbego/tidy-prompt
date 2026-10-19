@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_TEMPLATE_ID,
   PROMPT_TEMPLATES,
   createPromptFromTemplate,
-  createStarterPrompt,
   estimatePromptTokens,
   getTemplate,
   isRenderable,
@@ -17,6 +17,7 @@ import { usePromptActions, usePromptStore } from "./state/promptStore.js";
 import { BlockList } from "./components/BlockList.js";
 import { PreviewPane } from "./components/PreviewPane.js";
 import { StatsBar } from "./components/StatsBar.js";
+import { InfoNote } from "./components/InfoNote.js";
 import { IssueList } from "./components/IssueList.js";
 import { copyText } from "./lib/clipboard.js";
 import { downloadText, pickTextFile } from "./lib/download.js";
@@ -67,18 +68,22 @@ export function App(): React.ReactNode {
     return !hasContent || confirm(question);
   };
 
+  // The picker shows the template in use, so choosing it again is not possible;
+  // "New" is how you start over with the same one.
   const onNew = () => {
-    if (!confirmDiscard("Start a new prompt? The current one will be cleared.")) return;
-    actions.replacePrompt(createStarterPrompt());
-    flash("Started a new prompt");
+    const id = state.templateId ?? DEFAULT_TEMPLATE_ID;
+    const label = getTemplate(id)?.label ?? "prompt";
+    if (!confirmDiscard(`Start over with a new ${label}? The current prompt will be cleared.`)) return;
+    actions.replacePrompt(createPromptFromTemplate(id), id);
+    flash(`Started a new ${label}`);
   };
 
   const onTemplate = (id: string) => {
     const template = getTemplate(id);
     if (!template) return;
-    if (!confirmDiscard(`Start a ${template.label} prompt? The current one will be cleared.`)) return;
-    actions.replacePrompt(createPromptFromTemplate(id));
-    flash(`Started a ${template.label} prompt`);
+    if (!confirmDiscard(`Switch to ${template.label}? The current prompt will be cleared.`)) return;
+    actions.replacePrompt(createPromptFromTemplate(id), id);
+    flash(`Switched to ${template.label}`);
   };
 
   const onSave = () => {
@@ -117,41 +122,30 @@ export function App(): React.ReactNode {
         <div className="app__brand">
           <h1>tidy-prompt</h1>
           <p>Structured prompts for AI work.</p>
-          <details className="info">
-            <summary className="info__summary">How tags help</summary>
-            <div className="info__body">
-              <strong>Tags are labels, not code</strong>
-              <p>
-                The model does not run your XML. It reads the tag names as cues for where the task,
-                the background and the limits begin and end. Anthropic recommends tags for prompts
-                that mix instructions with pasted material. Clear writing inside them matters more
-                than the tags themselves.
-              </p>
-              <strong>Stays in this browser</strong>
-              <p>
-                Your prompt is kept in this browser&rsquo;s local storage so a reload does not lose
-                it. Nothing is uploaded, and there are no cookies.
-              </p>
-            </div>
-          </details>
+          <InfoNote />
         </div>
 
         <div className="app__toolbar">
-          <select
-            className="select"
-            aria-label="Start from a template"
-            value=""
-            onChange={(event) => {
-              if (event.target.value) onTemplate(event.target.value);
-            }}
-          >
-            <option value="">New from template…</option>
-            {PROMPT_TEMPLATES.map((template) => (
-              <option key={template.id} value={template.id} title={template.description}>
-                {template.label}
+          <label className="field">
+            <span className="field__label">Template</span>
+            <select
+              className="select"
+              value={state.templateId ?? ""}
+              onChange={(event) => {
+                if (event.target.value) onTemplate(event.target.value);
+              }}
+            >
+              {/* Shown only while the prompt came from a saved prompt or an import. */}
+              <option value="" disabled hidden>
+                Custom
               </option>
-            ))}
-          </select>
+              {PROMPT_TEMPLATES.map((template) => (
+                <option key={template.id} value={template.id} title={template.description}>
+                  {template.label}
+                </option>
+              ))}
+            </select>
+          </label>
           {state.saved.length > 0 && (
             <select
               className="select"

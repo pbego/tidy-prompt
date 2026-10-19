@@ -23,10 +23,15 @@ export interface State {
   focusBlockId: string | null;
   /** Ids of top-level blocks folded down to their header. View state, not prompt content. */
   collapsed: string[];
+  /**
+   * The template the prompt was started from, so the picker can show it. Null once
+   * the prompt came from somewhere else — a saved prompt or an imported file.
+   */
+  templateId: string | null;
 }
 
 export type Action =
-  | { type: "replace-prompt"; prompt: Prompt }
+  | { type: "replace-prompt"; prompt: Prompt; templateId?: string | null }
   | { type: "toggle-collapsed"; id: string }
   | { type: "add-block"; tag: string }
   | { type: "add-child"; parentId: string; tag: string }
@@ -46,6 +51,7 @@ export function reducer(state: State, action: Action): State {
         ...state,
         prompt: action.prompt,
         collapsed: defaultCollapsed(action.prompt),
+        templateId: action.templateId ?? null,
         focusBlockId: null,
       };
 
@@ -205,13 +211,14 @@ function reorder(blocks: Block[], activeId: string, overId: string): Block[] {
 }
 
 
-export function initialState(prompt: Prompt): State {
+export function initialState(prompt: Prompt, templateId: string | null = null): State {
   return {
     prompt,
     customTags: [],
     saved: [],
     focusBlockId: null,
     collapsed: defaultCollapsed(prompt),
+    templateId,
   };
 }
 

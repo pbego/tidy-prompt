@@ -276,3 +276,33 @@ describe("folding blocks", () => {
     expect(next.collapsed).not.toContain(next.focusBlockId);
   });
 });
+
+describe("the template in use", () => {
+  it("starts with none recorded, so the picker can read 'Custom'", () => {
+    expect(initialState(createPromptFromTemplate("task")).templateId).toBeNull();
+  });
+
+  it("remembers the template a replacement came from", () => {
+    const next = reducer(initialState(createPromptFromTemplate("task")), {
+      type: "replace-prompt",
+      prompt: createPromptFromTemplate("debug"),
+      templateId: "debug",
+    });
+    expect(next.templateId).toBe("debug");
+  });
+
+  it("goes back to none when the prompt comes from somewhere else", () => {
+    const fromTemplate = initialState(createPromptFromTemplate("task"), "task");
+    const next = reducer(fromTemplate, {
+      type: "replace-prompt",
+      prompt: { schemaVersion: SCHEMA_VERSION, blocks: [] },
+    });
+    expect(next.templateId).toBeNull();
+  });
+
+  it("keeps the template while the prompt is edited", () => {
+    const state = initialState(createPromptFromTemplate("build"), "build");
+    const next = reducer(state, { type: "add-block", tag: "data" });
+    expect(next.templateId).toBe("build");
+  });
+});

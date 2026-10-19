@@ -13,6 +13,7 @@ export const StorageKeys = {
   customTags: `${PREFIX}custom-tags`,
   saved: `${PREFIX}saved`,
   collapsed: `${PREFIX}collapsed`,
+  template: `${PREFIX}template`,
 } as const;
 
 function storage(): Storage | null {
