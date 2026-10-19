@@ -89,6 +89,15 @@ and from the token estimate, so the count always matches what would actually be 
 
 ### Decisions worth knowing
 
+**Material first, ask last.** New blocks slot in with background, code and data above the
+instructions, and the output format last. Anthropic's prompting guidance puts long inputs above the
+query; short prompts don't care, large ones do. You can still drag blocks into any order.
+
+**No `<thinking>` tag.** Current Claude models may decline a request to write their reasoning out,
+and are steered with effort settings instead. The built-in `approach` tag covers method — what to
+read first, when to ask — as goals rather than a step list. Any tag name still works, including
+`thinking` in a saved prompt.
+
 **Content is never re-indented.** Leading whitespace is meaningful in the things people paste into
 prompts — Python, YAML, diffs, log excerpts — so tags are indented by depth while content between
 them is emitted exactly as typed. `serializeXml(prompt, { indentContent: true })` opts out.

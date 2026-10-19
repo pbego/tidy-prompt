@@ -14,12 +14,19 @@ const tagsOf = (state: State) => state.prompt.blocks.map((b) => b.tag);
 
 describe("add-block", () => {
   it("inserts a built-in tag in its natural position rather than at the end", () => {
-    // context (30) belongs between instructions (20) and requirements (60).
-    const next = reducer(stateWith("instructions", "requirements"), {
+    // requirements (80) belongs between instructions (70) and constraints (110).
+    const next = reducer(stateWith("instructions", "constraints"), {
       type: "add-block",
-      tag: "context",
+      tag: "requirements",
     });
-    expect(tagsOf(next)).toEqual(["instructions", "context", "requirements"]);
+    expect(tagsOf(next)).toEqual(["instructions", "requirements", "constraints"]);
+  });
+
+  it("puts pasted material above the instructions, not below them", () => {
+    let state = stateWith("instructions", "output_format");
+    state = reducer(state, { type: "add-block", tag: "data" });
+    state = reducer(state, { type: "add-block", tag: "existing_code" });
+    expect(tagsOf(state)).toEqual(["existing_code", "data", "instructions", "output_format"]);
   });
 
   it("appends an unknown custom tag and remembers it", () => {

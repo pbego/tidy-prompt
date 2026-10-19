@@ -7,6 +7,11 @@
  * each of those is a separate tag so the model can be pointed at one without
  * dragging in the rest.
  *
+ * Order is "material first, ask last": background, code and data come before the
+ * instructions that act on them. Anthropic's prompting guidance puts long inputs
+ * above the query and says a closing query improves quality on large, multi-part
+ * prompts; short prompts are unaffected, so it costs nothing to default to it.
+ *
  * Users can add any other tag name; nothing here is a closed set.
  */
 
@@ -35,21 +40,14 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     placeholder:
       "You are a senior TypeScript engineer working in an existing React codebase. You favour small, reviewable changes over rewrites.",
   },
-  {
-    tag: "instructions",
-    label: "Instructions",
-    description: "The change to make. One clear objective beats five vague ones.",
-    defaultOrder: 20,
-    defaultEnabled: true,
-    placeholder:
-      "Add a saved-views feature to the dashboard: users can name the current filter set, reload it later, and delete saved views.",
-  },
+
+  // Material: what the model reads before it is told what to do.
   {
     tag: "context",
     label: "Context",
     description:
       "Background the model needs but should not act on: product goals, history, why this is being built.",
-    defaultOrder: 30,
+    defaultOrder: 20,
     defaultEnabled: true,
     placeholder:
       "Dashboard filters currently reset on reload, which is the top support complaint. We ship weekly and cannot break existing URLs.",
@@ -59,7 +57,7 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     label: "Codebase",
     description:
       "Where the change lands: architecture, relevant files, conventions to follow.",
-    defaultOrder: 40,
+    defaultOrder: 30,
     placeholder:
       "State lives in src/state/useDashboardStore.ts (useReducer + context). Persistence helpers are in src/lib/storage.ts. Components are function components with colocated CSS modules.",
   },
@@ -67,14 +65,39 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     tag: "tech_stack",
     label: "Tech stack",
     description: "Languages, frameworks and versions the solution must fit.",
-    defaultOrder: 50,
+    defaultOrder: 40,
     placeholder: "React 19, TypeScript 5.7 strict, Vite 6, vitest. No new runtime dependencies.",
+  },
+  {
+    tag: "existing_code",
+    label: "Existing code",
+    description: "The current implementation to modify, extend or match.",
+    defaultOrder: 50,
+    placeholder: "Paste the files or functions the change touches.",
+  },
+  {
+    tag: "data",
+    label: "Data",
+    description: "Schemas, sample payloads, fixtures or records to work against.",
+    defaultOrder: 60,
+    placeholder: 'Paste the API response, schema or sample rows.',
+  },
+
+  // The ask: everything from here on tells the model what to do with the above.
+  {
+    tag: "instructions",
+    label: "Instructions",
+    description: "The change to make. One clear objective beats five vague ones.",
+    defaultOrder: 70,
+    defaultEnabled: true,
+    placeholder:
+      "Add a saved-views feature to the dashboard: users can name the current filter set, reload it later, and delete saved views.",
   },
   {
     tag: "requirements",
     label: "Requirements",
     description: "The functional requirements, one per line or one per child block.",
-    defaultOrder: 60,
+    defaultOrder: 80,
     container: true,
     childTag: "requirement",
     defaultEnabled: true,
@@ -85,25 +108,11 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     tag: "acceptance_criteria",
     label: "Acceptance criteria",
     description: "Observable conditions that decide whether the work is done.",
-    defaultOrder: 70,
+    defaultOrder: 90,
     container: true,
     childTag: "criterion",
     placeholder:
       "Given three saved views, when I reload the page, then all three are listed in the order they were created.",
-  },
-  {
-    tag: "existing_code",
-    label: "Existing code",
-    description: "The current implementation to modify, extend or match.",
-    defaultOrder: 80,
-    placeholder: "Paste the files or functions the change touches.",
-  },
-  {
-    tag: "data",
-    label: "Data",
-    description: "Schemas, sample payloads, fixtures or records to work against.",
-    defaultOrder: 90,
-    placeholder: 'Paste the API response, schema or sample rows.',
   },
   {
     tag: "examples",
@@ -147,20 +156,25 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     placeholder: "Server-side sync, sharing views between users, and the mobile layout.",
   },
   {
+    // Deliberately not "thinking": current Claude models may decline a request to
+    // write their reasoning out (often in <thinking> tags) and are steered by
+    // effort settings instead. This tag is about method, not a reasoning dump,
+    // and states goals rather than a step list.
+    tag: "approach",
+    label: "Approach",
+    description:
+      "How to go about it: what to look at first and when to stop and ask. Goals beat step lists.",
+    defaultOrder: 150,
+    placeholder:
+      "Read the files this touches before changing anything. If something is ambiguous, say so instead of guessing.",
+  },
+  {
     tag: "output_format",
     label: "Output format",
     description: "The exact shape of the answer: diff, whole files, JSON, prose.",
-    defaultOrder: 150,
-    placeholder:
-      "Return a unified diff per file, then a short summary of the trade-offs you made.",
-  },
-  {
-    tag: "thinking",
-    label: "Thinking",
-    description: "How the model should reason before it answers.",
     defaultOrder: 160,
     placeholder:
-      "List the files you would touch and why before writing any code. Flag anything ambiguous instead of guessing.",
+      "Return a unified diff per file, then a short summary of the trade-offs you made.",
   },
 ];
 
@@ -182,8 +196,8 @@ export const DEFAULT_SYSTEM_TAGS: readonly string[] = [
   "role",
   "instructions",
   "constraints",
+  "approach",
   "output_format",
-  "thinking",
 ];
 
 /** Turns `output_format` into `Output format` for headings and labels. */
