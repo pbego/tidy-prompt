@@ -1,0 +1,18 @@
+{
+  "name": "tidy-prompt",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Structured prompt composer: compose XML-tagged prompts from named blocks",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @tidy-prompt/web dev",
+    "build": "pnpm --filter @tidy-prompt/core build && pnpm --filter @tidy-prompt/web build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.5"
+  }
+}

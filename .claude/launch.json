@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tidy-prompt-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@tidy-prompt/web",
+        "dev"
+      ],
+      "port": 5180
+    }
+  ]
+}
