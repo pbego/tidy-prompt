@@ -7,14 +7,13 @@ import { useMemo, useState } from "react";
 import {
   serializeJson,
   serializeMarkdown,
-  serializeMessagesRequest,
   serializeXml,
   type Prompt,
 } from "@tidy-prompt/core";
 import { copyText } from "../lib/clipboard.js";
 import { downloadText } from "../lib/download.js";
 
-export type FormatId = "xml" | "markdown" | "json" | "api";
+export type FormatId = "xml" | "markdown" | "json";
 
 interface Format {
   id: FormatId;
@@ -49,14 +48,6 @@ export const FORMATS: readonly Format[] = [
     extension: "json",
     mimeType: "application/json",
     render: (prompt) => serializeJson(prompt),
-  },
-  {
-    id: "api",
-    label: "API request",
-    hint: "A Messages API body. A role you add goes in system; everything else is the user turn.",
-    extension: "json",
-    mimeType: "application/json",
-    render: (prompt) => serializeMessagesRequest(prompt),
   },
 ];
 

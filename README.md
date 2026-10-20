@@ -85,7 +85,7 @@ interface Prompt { schemaVersion: 1; blocks: Block[] }
 | `serializeXml` | Tagged sections. The primary format. |
 | `serializeMarkdown` | The same structure as `##` headings. |
 | `serializeJson` | One field per tag; repeated tags collapse to arrays. |
-| `toMessagesRequest` | A Messages API body — a hand-typed `role` in `system`, everything else in the user turn. |
+| `toMessagesRequest` | A Messages API body — a hand-typed `role` in `system`, everything else in the user turn. A library function for code that calls the API; the app does not show it. |
 
 Blocks that are disabled, or empty with no renderable children, are omitted from every output —
 and from the token estimate, so the count always matches what would actually be sent.
