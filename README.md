@@ -104,13 +104,16 @@ a removed name keeps it as an ordinary custom tag.
 **`references` is pointers, `data` is pasted text.** An agent can read a file or follow a link, so
 `references` lists where to look instead of pasting it in, where it would go stale.
 
-**Material first, ask last.** New blocks slot in with background, code and data above the task and
-the rest of the ask below it. Anthropic's prompting guidance puts long inputs above the query;
-short prompts don't care, large ones do. You can still drag blocks into any order.
+**Pasted material first, then the task.** A new block slots in as `code` and `data`, then the
+`task`, then whatever that kind of brief centres on (the bug report, the review focus), then
+`context`, `references`, `requirements` and the rest. Pasted material goes first because it is the
+one thing long enough to matter: Anthropic's prompting guidance puts long inputs above the query.
+A brief with nothing pasted in therefore reads task first, which is how people write one. You can
+still drag blocks into any order. The Add tag menu has its own order, everyday tags first.
 
 **Templates list tags, never content.** A template is a set of empty blocks with the main one
 switched on and the rest present but off, so it can offer more than it makes you fill in. Positions
-come from the tag registry, so no template repeats the material-first order. The app folds the
+come from the tag registry, so no template repeats the order. The app folds the
 blocks that are off and empty; folding is view state, kept beside the document, not in it.
 
 **Hints are heuristics, and they stay quiet.** `suggestImprovements` is a handful of mechanical

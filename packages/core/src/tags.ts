@@ -8,10 +8,15 @@
  * the code to change and a diff to review, and `requirements` is also where "done
  * when" goes. Anything else can be added as a custom tag; nothing here is a closed set.
  *
- * Order is "material first, ask last": background, code and data come before the
- * task that acts on them. Anthropic's prompting guidance puts long inputs above the
- * query and says a closing query improves quality on large, multi-part prompts;
- * short prompts are unaffected, so it costs nothing to default to it.
+ * Two orders live here, for two different jobs:
+ *
+ *  - `defaultOrder` is where a block sits in the prompt. Pasted material (`code`,
+ *    `data`) goes first, because that is the one thing long enough to matter: Anthropic's
+ *    prompting guidance puts long inputs above the query. Then the task, with whatever
+ *    that kind of brief centres on right behind it, then the background and the rest.
+ *    A brief with nothing pasted in therefore reads task first.
+ *  - The position in this array is the order of the Add tag menu: the everyday tags
+ *    first, the ones tied to one kind of brief after them.
  *
  * Tags that only make sense in one kind of brief (a bug report, a review) name
  * their templates and stay out of the Add tag menu elsewhere.
@@ -21,7 +26,7 @@ export interface TagDefinition {
   tag: string;
   label: string;
   description: string;
-  /** Suggested position when a block is added; lower sorts earlier. */
+  /** Where a block sits in the prompt when it is added; lower sorts earlier. */
   defaultOrder: number;
   /** True when the tag is a container for repeated child blocks. */
   container?: boolean;
@@ -38,13 +43,21 @@ export interface TagDefinition {
 }
 
 export const BUILTIN_TAGS: readonly TagDefinition[] = [
-  // Material: what the model reads before it is told what to do.
+  {
+    tag: "task",
+    label: "Task",
+    description:
+      "What you want done, in a sentence or two. One clear objective beats five vague ones.",
+    defaultOrder: 30,
+    placeholder:
+      "Go through the open support tickets about saved views and suggest the three changes that would remove the most of them.",
+  },
   {
     tag: "context",
     label: "Context",
     description:
       "Background the model needs but should not act on: goals, history, how the codebase is laid out, the stack and its conventions.",
-    defaultOrder: 10,
+    defaultOrder: 80,
     placeholder:
       "Dashboard filters reset on reload, which is the top support complaint. State lives in src/state/useDashboardStore.ts and persistence helpers are in src/lib/storage.ts. React 19, strict TypeScript, no new runtime dependencies.",
   },
@@ -53,69 +66,9 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     label: "References",
     description:
       "Where to look, not what to paste: links, file paths, tickets or docs the model should read.",
-    defaultOrder: 20,
+    defaultOrder: 90,
     placeholder:
       "Spec: https://example.com/saved-views-spec\nPersistence helpers: src/lib/storage.ts\nTicket: DASH-482",
-  },
-  {
-    tag: "symptoms",
-    label: "Symptoms",
-    description: "What is going wrong: the observed behaviour, error messages and logs.",
-    defaultOrder: 30,
-    templates: ["debug"],
-    placeholder:
-      "Saving a view throws QuotaExceededError in Safari private mode, and the page stays on the spinner.",
-  },
-  {
-    tag: "expected_behavior",
-    label: "Expected behaviour",
-    description: "What should happen instead.",
-    defaultOrder: 40,
-    templates: ["debug"],
-    placeholder: "The view saves, or a clear message explains why it cannot.",
-  },
-  {
-    tag: "reproduction",
-    label: "Reproduction",
-    description: "The steps that trigger it, and how often it happens.",
-    defaultOrder: 50,
-    templates: ["debug"],
-    placeholder:
-      "1. Open the dashboard in a private window. 2. Apply any filter. 3. Click Save view. Happens every time.",
-  },
-  {
-    tag: "code",
-    label: "Code",
-    description: "Source code or a diff: what to change, match or review.",
-    defaultOrder: 60,
-    placeholder: "Paste the files, functions or diff the work touches.",
-  },
-  {
-    tag: "data",
-    label: "Data",
-    description:
-      "Pasted material to work from: documents, excerpts, records, schemas or sample payloads.",
-    defaultOrder: 70,
-    placeholder: "Paste the passages, notes, API response or sample rows.",
-  },
-
-  // The ask: everything from here on tells the model what to do with the above.
-  {
-    tag: "task",
-    label: "Task",
-    description:
-      "What you want done, in a sentence or two. One clear objective beats five vague ones.",
-    defaultOrder: 80,
-    placeholder:
-      "Go through the open support tickets about saved views and suggest the three changes that would remove the most of them.",
-  },
-  {
-    tag: "review_focus",
-    label: "Review focus",
-    description: "What to look for, and what to skip.",
-    defaultOrder: 90,
-    templates: ["review"],
-    placeholder: "Correctness and error handling first. Ignore formatting; the linter covers it.",
   },
   {
     tag: "requirements",
@@ -127,6 +80,21 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     childTag: "requirement",
     placeholder:
       "A view stores the active filters, sort order and column layout.\nView names are unique per user; saving a duplicate name prompts to overwrite.\nDone when reloading the page lists every saved view in the order it was created.",
+  },
+  {
+    tag: "code",
+    label: "Code",
+    description: "Source code or a diff: what to change, match or review.",
+    defaultOrder: 10,
+    placeholder: "Paste the files, functions or diff the work touches.",
+  },
+  {
+    tag: "data",
+    label: "Data",
+    description:
+      "Pasted material to work from: documents, excerpts, records, schemas or sample payloads.",
+    defaultOrder: 20,
+    placeholder: "Paste the passages, notes, API response or sample rows.",
   },
   {
     tag: "examples",
@@ -144,6 +112,42 @@ export const BUILTIN_TAGS: readonly TagDefinition[] = [
     defaultOrder: 120,
     placeholder: "Server-side sync, sharing views between users, and the mobile layout.",
   },
+
+  // Tied to one kind of brief; offered in the Add tag menu only for that template.
+  {
+    tag: "symptoms",
+    label: "Symptoms",
+    description: "What is going wrong: the observed behaviour, error messages and logs.",
+    defaultOrder: 40,
+    templates: ["debug"],
+    placeholder:
+      "Saving a view throws QuotaExceededError in Safari private mode, and the page stays on the spinner.",
+  },
+  {
+    tag: "expected_behavior",
+    label: "Expected behaviour",
+    description: "What should happen instead.",
+    defaultOrder: 50,
+    templates: ["debug"],
+    placeholder: "The view saves, or a clear message explains why it cannot.",
+  },
+  {
+    tag: "reproduction",
+    label: "Reproduction",
+    description: "The steps that trigger it, and how often it happens.",
+    defaultOrder: 60,
+    templates: ["debug"],
+    placeholder:
+      "1. Open the dashboard in a private window. 2. Apply any filter. 3. Click Save view. Happens every time.",
+  },
+  {
+    tag: "review_focus",
+    label: "Review focus",
+    description: "What to look for, and what to skip.",
+    defaultOrder: 70,
+    templates: ["review"],
+    placeholder: "Correctness and error handling first. Ignore formatting; the linter covers it.",
+  },
 ];
 
 const BY_TAG = new Map(BUILTIN_TAGS.map((d) => [d.tag, d]));
@@ -157,9 +161,10 @@ export function isBuiltinTag(tag: string): boolean {
 }
 
 /**
- * The built-in tags to offer while `templateId` is in use: everything that is not
- * tied to a template, plus the tags that belong to this one. With no template —
- * a prompt that came from a saved file or an import — only the general tags.
+ * The built-in tags to offer while `templateId` is in use, in menu order:
+ * everything that is not tied to a template, plus the tags that belong to this
+ * one. With no template — a prompt that came from a saved file or an import —
+ * only the general tags.
  */
 export function builtinTagsFor(templateId: string | null): readonly TagDefinition[] {
   return BUILTIN_TAGS.filter(
@@ -169,8 +174,8 @@ export function builtinTagsFor(templateId: string | null): readonly TagDefinitio
 }
 
 /**
- * True for the built-in tags that carry material the model reads before the ask:
- * everything positioned ahead of `task`, the first of the ask tags.
+ * True for the built-in tags that hold pasted material, which sits above the task:
+ * everything positioned ahead of `task`.
  */
 export function isMaterialTag(tag: string): boolean {
   const definition = BY_TAG.get(tag);

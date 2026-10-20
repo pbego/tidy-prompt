@@ -31,12 +31,43 @@ describe("prompt templates", () => {
     }
   });
 
-  it("builds blocks in registry order, so material comes before the ask", () => {
+  it("lays every template out in the order the registry gives", () => {
     for (const template of PROMPT_TEMPLATES) {
       const orders = createPromptFromTemplate(template.id).blocks.map(
         (b) => getTagDefinition(b.tag)!.defaultOrder,
       );
       expect(orders, template.id).toEqual([...orders].sort((a, b) => a - b));
+    }
+  });
+
+  it("lays out each template as pasted material, the task, then the rest", () => {
+    expect(tagsOf("task")).toEqual(["task", "context", "references", "requirements"]);
+    expect(tagsOf("research")).toEqual(["data", "task", "context", "references"]);
+    expect(tagsOf("build")).toEqual([
+      "code",
+      "task",
+      "context",
+      "references",
+      "requirements",
+      "out_of_scope",
+    ]);
+    expect(tagsOf("debug")).toEqual([
+      "code",
+      "task",
+      "symptoms",
+      "expected_behavior",
+      "reproduction",
+      "context",
+      "references",
+    ]);
+    expect(tagsOf("review")).toEqual(["code", "task", "review_focus", "context", "references"]);
+  });
+
+  it("opens every template on the task, unless something is pasted in above it", () => {
+    for (const template of PROMPT_TEMPLATES.filter((t) => t.id !== "blank")) {
+      const first = tagsOf(template.id)[0]!;
+      expect(["task", "code", "data"], template.id).toContain(first);
+      if (first !== "task") expect(tagsOf(template.id)[1], template.id).toBe("task");
     }
   });
 
@@ -93,9 +124,9 @@ describe("prompt templates", () => {
 
   it("makes the starter prompt the task brief", () => {
     expect(createStarterPrompt().blocks.map((b) => [b.tag, b.enabled])).toEqual([
+      ["task", true],
       ["context", false],
       ["references", false],
-      ["task", true],
       ["requirements", false],
     ]);
   });

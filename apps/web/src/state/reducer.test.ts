@@ -29,6 +29,12 @@ describe("add-block", () => {
     expect(tagsOf(state)).toEqual(["code", "data", "task", "out_of_scope"]);
   });
 
+  it("puts the task ahead of the background, whichever is added first", () => {
+    let state = reducer(stateWith(), { type: "add-block", tag: "context" });
+    state = reducer(state, { type: "add-block", tag: "task" });
+    expect(tagsOf(state)).toEqual(["task", "context"]);
+  });
+
   it("appends an unknown custom tag and remembers it", () => {
     const next = reducer(stateWith("instructions"), { type: "add-block", tag: "rollout_plan" });
     expect(tagsOf(next)).toEqual(["instructions", "rollout_plan"]);

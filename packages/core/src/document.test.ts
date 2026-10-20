@@ -69,9 +69,9 @@ describe("createStarterPrompt", () => {
   it("opens as the task brief: every block empty, only the task switched on", () => {
     const prompt = createStarterPrompt();
     expect(prompt.blocks.map((b) => b.tag)).toEqual([
+      "task",
       "context",
       "references",
-      "task",
       "requirements",
     ]);
     expect(prompt.blocks.every((b) => b.content === "")).toBe(true);

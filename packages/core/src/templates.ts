@@ -5,7 +5,7 @@
  * text on each tag shows what belongs there. Only the blocks the job really needs
  * are switched on; the rest are present but off, so a template can offer more
  * than it makes you fill in. Positions come from the tag registry, so a template
- * never has to repeat the material-first order.
+ * never has to repeat the order: pasted material, then the task, then the rest.
  */
 
 import { getTagDefinition } from "./tags.js";
@@ -102,7 +102,7 @@ export function getTemplate(id: string): PromptTemplate | undefined {
 
 /**
  * Builds a fresh prompt from a template, or from the default one when the id is
- * unknown. Blocks come out in registry order, with a fresh id each time.
+ * unknown. Blocks come out in the registry's prompt order, with a fresh id each time.
  */
 export function createPromptFromTemplate(id: string = DEFAULT_TEMPLATE_ID): Prompt {
   const template = getTemplate(id) ?? getTemplate(DEFAULT_TEMPLATE_ID)!;
