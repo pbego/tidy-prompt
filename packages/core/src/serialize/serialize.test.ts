@@ -270,7 +270,7 @@ describe("toMessagesRequest", () => {
 
   it("defaults to a current model and an explicit max_tokens", () => {
     const request = toMessagesRequest(promptOf({ tag: "data", content: "x" }));
-    expect(request.model).toBe("claude-opus-5");
+    expect(request.model).toBe("claude-opus-5-5");
     expect(request.max_tokens).toBe(4096);
   });
 

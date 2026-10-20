@@ -96,7 +96,7 @@ export function toMessagesRequest(
   // Key order matters only for readability, but this is a body people read and
   // paste, so it is built in the order the API documents it.
   const request: MessagesRequest = {
-    model: options.model ?? "claude-opus-5",
+    model: options.model ?? "claude-opus-5-5",
     max_tokens: options.maxTokens ?? 4096,
     ...(systemBlocks.length > 0 ? { system: serializeSubset(systemBlocks, options) } : {}),
     messages: [{ role: "user", content: serializeSubset(userBlocks, options) }],

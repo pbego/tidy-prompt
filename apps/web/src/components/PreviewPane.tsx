@@ -53,7 +53,7 @@ export const FORMATS: readonly Format[] = [
   {
     id: "api",
     label: "API request",
-    hint: "A Messages API body: standing instructions in system, material in the user turn.",
+    hint: "A Messages API body. A role you add goes in system; everything else is the user turn.",
     extension: "json",
     mimeType: "application/json",
     render: (prompt) => serializeMessagesRequest(prompt),
